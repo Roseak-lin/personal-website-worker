@@ -3,25 +3,22 @@
   "name": "personal-website-worker",
   "main": "src/index.ts",
   "compatibility_date": "2025-08-25",
-  // "compatibility_flags": [
-  //   "nodejs_compat"
-  // ],
-  // "vars": {
-  //   "MY_VAR": "my-variable"
-  // },
-  // "kv_namespaces": [
-  //   {
-  //     "binding": "MY_KV_NAMESPACE",
-  //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  //   }
-  // ],
   "r2_buckets": [
     {
       "binding": "personal-bucket",
       "bucket_name": "personal-website",
       "experimental_remote": true
     }
-  ],
+  ]
+  // "compatibility_flags": [
+  //   "nodejs_compat"
+  // ],
+  // "kv_namespaces": [
+  //   {
+  //     "binding": "MY_KV_NAMESPACE",
+  //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  //   }
+  // ],
   // "d1_databases": [
   //   {
   //     "binding": "MY_DB",
