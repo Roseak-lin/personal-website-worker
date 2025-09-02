@@ -1,5 +1,3 @@
-// Add the correct import or declare R2Bucket if it's a global type
-// For example, if using Cloudflare types:
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 
@@ -19,13 +17,14 @@ app.use(
       "http://localhost:8080",
     ],
     allowHeaders: ["Content-Type"],
-    allowMethods: ["GET"],
+    allowMethods: ["GET", "POST", "DELETE"],
   })
 );
 
 app.get("/getItems", async (c) => {
   try {
-    const r2ListResult = await c.env["personal-bucket"].list();
+    const env = await c.env["personal-bucket"];
+    const r2ListResult = await c.env["personal-bucket"].list({include: ['customMetadata']});
 
     if (!r2ListResult || r2ListResult.objects.length === 0) {
       return c.json({ images: [] });
@@ -33,6 +32,8 @@ app.get("/getItems", async (c) => {
 
     const images = r2ListResult.objects.map((obj) => ({
       key: obj.key,
+      width: obj.customMetadata?.width,
+      height: obj.customMetadata?.height,
       url: `/getImage/${encodeURIComponent(obj.key)}`,
     }));
 
@@ -44,14 +45,7 @@ app.get("/getItems", async (c) => {
 
 app.get("/", (c) => {
   return c.html(`
-    <html>
-      <body>
-      <form method="post" action="/upload" enctype="multipart/form-data">
-        <input type='file' name='file' />
-        <button type='submit'>Upload</button>
-      </form>
-    </body>
-  </html>
+    <strong>R Lin</strong>
   `);
 });
 
@@ -76,48 +70,13 @@ app.get("/getImage/:id", async (c) => {
   }
 });
 
-app.get("/rename-all", async (c) => {
-  try {
-    const bucket = c.env["personal-bucket"];
-
-    const listResult = await bucket.list();
-
-    if (!listResult.objects || listResult.objects.length === 0) {
-      return c.json({ message: "No objects found in bucket." });
-    }
-
-    for (const [index, obj] of listResult.objects.entries()) {
-      const oldKey = obj.key;
-      if (!oldKey) return c.json({ error: "No objects found in bucket." });
-      const extension = oldKey.split(".").pop();
-      const newKey = `IMG_2181`;
-
-      const object = await bucket.get(oldKey);
-      if (!object || !object.body) {
-        console.warn(`Skipping ${oldKey}: unable to fetch`);
-        return c.json({ error: "Failed to fetch object." }, 404);
-      }
-
-      await bucket.put(newKey, object.body, {
-        httpMetadata: object.httpMetadata,
-      });
-
-      await bucket.delete(oldKey);
-      console.log(`Renamed ${oldKey} → ${newKey}`);
-    }
-
-    return c.json({ message: "All objects renamed successfully." });
-  } catch (err) {
-    console.error(err);
-    return c.json({ error: "Failed to rename objects." }, 500);
-  }
-});
-
 // write an endpoint to upload a file into the r2 bucket
 app.post("/upload", async (c) => {
-  const body = await c.req.parseBody();
-  const file = body["file"];
-  console.log(body);
+  const body = await c.req.formData();
+  const file = body.get("file") as File;
+  const buffer = await file.arrayBuffer();
+  const width = body.get("width") as string;
+  const height = body.get("height") as string;
 
   if (!file || !(file instanceof File)) {
     return c.json({ error: "Issue with file uploaded." }, 400);
@@ -125,11 +84,44 @@ app.post("/upload", async (c) => {
 
   try {
     const bucket = c.env["personal-bucket"];
-    await bucket.put(file.name, file);
+    await bucket.put(file.name, buffer, {
+      httpMetadata: {
+        contentType: file.type,
+      },
+      customMetadata: {
+        width,
+        height,
+      },
+    });
+
     return c.json({ message: "File uploaded successfully." });
   } catch (err) {
     console.error(err);
     return c.json({ error: "Failed to upload file." }, 500);
+  }
+});
+
+app.delete("/deleteAll", async (c) => {
+  const provided = c.req.header('x-admin-key');
+  if (provided !== c.env.CLOUDFLARE_TOKEN) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  try {
+    const bucket = c.env["personal-bucket"];
+    const r2ListResult = await bucket.list();
+
+    if (!r2ListResult || r2ListResult.objects.length === 0) {
+      return c.json({ message: "No images to delete." });
+    }
+
+    await Promise.all(
+      r2ListResult.objects.map((obj) => bucket.delete(obj.key))
+    );
+
+    return c.json({ message: "All images deleted successfully." });
+  } catch (err) {
+    console.error(err);
+    return c.json({ error: "Failed to delete images." }, 500);
   }
 });
 
