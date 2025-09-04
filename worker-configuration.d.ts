@@ -329,7 +329,9 @@ declare const crypto: Crypto;
 *
 * [Cloudflare Docs Reference](https://developers.cloudflare.com/workers/runtime-apis/cache/)
 */
-declare const caches: CacheStorage;
+declare const caches: CacheStorage & {
+  default: Cache;
+};
 declare const scheduler: Scheduler;
 /**
 * The Workers runtime supports a subset of the Performance API, used to measure timing and performance,
@@ -825,11 +827,11 @@ interface FileOptions {
 *
 * [Cloudflare Docs Reference](https://developers.cloudflare.com/workers/runtime-apis/cache/)
 */
-declare abstract class CacheStorage {
-    /* [MDN Reference](https://developer.mozilla.org/docs/Web/API/CacheStorage/open) */
-    open(cacheName: string): Promise<Cache>;
-    readonly default: Cache;
-}
+// declare abstract class CacheStorage {
+//     /* [MDN Reference](https://developer.mozilla.org/docs/Web/API/CacheStorage/open) */
+//     open(cacheName: string): Promise<Cache>;
+//     readonly default: Cache;
+// }
 /**
 * The Cache API allows fine grained control of reading and writing from the Cloudflare global network cache.
 *

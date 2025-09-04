@@ -23,7 +23,6 @@ app.use(
 
 app.get("/getItems", async (c) => {
   try {
-    const env = await c.env["personal-bucket"];
     const r2ListResult = await c.env["personal-bucket"].list({include: ['customMetadata']});
 
     if (!r2ListResult || r2ListResult.objects.length === 0) {
@@ -50,23 +49,33 @@ app.get("/", (c) => {
 });
 
 app.get("/getImage/:id", async (c) => {
+  // check cache
+  const cache = caches.default;
   const id = c.req.param().id;
-
+  const cachedResponse = await cache.match(c.req.raw);
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+  
   if (!id) {
     return c.json({ error: "File ID is required." }, 400);
   } else {
     const r2Object = await c.env["personal-bucket"].get(id);
-    const buffer = await r2Object?.arrayBuffer();
+    const response = new Response(r2Object?.body, {
+      headers: {
+        "Content-Type": "image/jpeg",
+        "Accept-Ranges": "bytes",
+      },
+    });
 
-    if (!buffer) {
+    if (!r2Object) {
       return c.json({ error: "Failed to retrieve image." }, 404);
     }
 
-    return c.body(buffer, {
-      headers: {
-        "Content-Type": "image/jpeg",
-      },
-    });
+    // store in cache
+    c.executionCtx.waitUntil(cache.put(c.req.raw, response.clone()));
+
+    return response;
   }
 });
 
