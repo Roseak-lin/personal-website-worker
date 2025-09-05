@@ -23,7 +23,9 @@ app.use(
 
 app.get("/getItems", async (c) => {
   try {
-    const r2ListResult = await c.env["personal-bucket"].list({include: ['customMetadata']});
+    const r2ListResult = await c.env["personal-bucket"].list({
+      include: ["customMetadata"],
+    });
 
     if (!r2ListResult || r2ListResult.objects.length === 0) {
       return c.json({ images: [] });
@@ -48,15 +50,17 @@ app.get("/", (c) => {
   `);
 });
 
-app.get("/getImage/:id", async (c) => {
+app.get("/getImage/:id", async (c) => {  
   // check cache
   const cache = caches.default;
   const id = c.req.param().id;
-  const cachedResponse = await cache.match(c.req.raw);
+  const cacheKey = new Request(c.req.url, { method: "GET" });
+  const cachedResponse = await cache.match(cacheKey);
+  
   if (cachedResponse) {
     return cachedResponse;
   }
-  
+
   if (!id) {
     return c.json({ error: "File ID is required." }, 400);
   } else {
@@ -73,8 +77,11 @@ app.get("/getImage/:id", async (c) => {
     }
 
     // store in cache
-    c.executionCtx.waitUntil(cache.put(c.req.raw, response.clone()));
-
+    c.executionCtx.waitUntil(
+      (async () => {
+        await cache.put(cacheKey, response.clone());
+      })()
+    );
     return response;
   }
 });
@@ -111,7 +118,7 @@ app.post("/upload", async (c) => {
 });
 
 app.delete("/deleteAll", async (c) => {
-  const provided = c.req.header('x-admin-key');
+  const provided = c.req.header("x-admin-key");
   if (provided !== c.env.CLOUDFLARE_TOKEN) {
     return c.json({ error: "Unauthorized" }, 401);
   }
