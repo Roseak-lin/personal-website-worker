@@ -23,8 +23,12 @@ app.use(
 
 app.get("/getItems", async (c) => {
   try {
+    const cursor = c.req.query("cursor") || undefined;
+    
     const r2ListResult = await c.env["personal-bucket"].list({
       include: ["customMetadata"],
+      limit: 5,
+      cursor,
     });
 
     if (!r2ListResult || r2ListResult.objects.length === 0) {
@@ -38,7 +42,12 @@ app.get("/getItems", async (c) => {
       url: `/getImage/${encodeURIComponent(obj.key)}`,
     }));
 
-    return c.json({ images });
+    return c.json({
+      images,
+      cursor: r2ListResult.truncated ? r2ListResult.cursor : null,
+      truncated: r2ListResult.truncated,
+      pageSize: 15,
+    });
   } catch (err) {
     return c.json({ error: "Failed to list R2 objects." }, 500);
   }
@@ -50,13 +59,13 @@ app.get("/", (c) => {
   `);
 });
 
-app.get("/getImage/:id", async (c) => {  
+app.get("/getImage/:id", async (c) => {
   // check cache
   const cache = caches.default;
   const id = c.req.param().id;
   const cacheKey = new Request(c.req.url, { method: "GET" });
   const cachedResponse = await cache.match(cacheKey);
-  
+
   if (cachedResponse) {
     return cachedResponse;
   }
