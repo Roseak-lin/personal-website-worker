@@ -27,7 +27,7 @@ app.get("/getItems", async (c) => {
     
     const r2ListResult = await c.env["personal-bucket"].list({
       include: ["customMetadata"],
-      limit: 5,
+      limit: 6,
       cursor,
     });
 
@@ -46,7 +46,7 @@ app.get("/getItems", async (c) => {
       images,
       cursor: r2ListResult.truncated ? r2ListResult.cursor : null,
       truncated: r2ListResult.truncated,
-      pageSize: 15,
+      pageSize: 6,
     });
   } catch (err) {
     return c.json({ error: "Failed to list R2 objects." }, 500);
@@ -60,15 +60,8 @@ app.get("/", (c) => {
 });
 
 app.get("/getImage/:id", async (c) => {
-  // check cache
-  const cache = caches.default;
   const id = c.req.param().id;
-  const cacheKey = new Request(c.req.url, { method: "GET" });
-  const cachedResponse = await cache.match(cacheKey);
-
-  if (cachedResponse) {
-    return cachedResponse;
-  }
+  console.log("Fetching image", id);
 
   if (!id) {
     return c.json({ error: "File ID is required." }, 400);
@@ -84,13 +77,6 @@ app.get("/getImage/:id", async (c) => {
     if (!r2Object) {
       return c.json({ error: "Failed to retrieve image." }, 404);
     }
-
-    // store in cache
-    c.executionCtx.waitUntil(
-      (async () => {
-        await cache.put(cacheKey, response.clone());
-      })()
-    );
     return response;
   }
 });
@@ -126,6 +112,7 @@ app.post("/upload", async (c) => {
   }
 });
 
+// ONLY FOR DEV PURPOSES - delete all files in the r2 bucket
 app.delete("/deleteAll", async (c) => {
   const provided = c.req.header("x-admin-key");
   if (provided !== c.env.CLOUDFLARE_TOKEN) {
