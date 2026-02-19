@@ -13,7 +13,7 @@ app.use(
       "http://localhost:3000",
       "http://localhost:8080",
     ],
-    allowHeaders: ["Content-Type"],
+    allowHeaders: ["Content-Type", "x-admin-key"],
     allowMethods: ["GET", "POST", "DELETE"],
   })
 );

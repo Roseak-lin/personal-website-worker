@@ -1,6 +1,6 @@
 import { Context } from "hono";
 
-import * as Services from "../services/r2.services";
+import * as Services from "../services/r2.service";
 import { AppError } from "../errors/AppError";
 
 export const getItems = async (c: Context) => {
@@ -18,8 +18,7 @@ export const getItems = async (c: Context) => {
 
     const images = r2ListResult.objects.map((obj: R2Object) => ({
       key: obj.key,
-      width: obj.customMetadata?.width,
-      height: obj.customMetadata?.height,
+      exifData: obj.customMetadata?.exifData,
       url: `/images/${encodeURIComponent(obj.key)}`,
     }));
 
@@ -58,20 +57,16 @@ export const getImage = async (c: Context) => {
 export const uploadImage = async (c: Context) => {
   const body = await c.req.formData();
   const file = body.get("file") as File;
-  const width = body.get("width") as string;
-  const height = body.get("height") as string;
 
   if (!file || !(file instanceof File)) {
     return c.json({ error: "Issue with file uploaded." }, 400);
   }
 
   try {
-    Services.uploadImage(
-      c.env["personal-website"],
+    await Services.uploadImage(
+      c.env["personal-bucket"],
       file.name,
       file,
-      width,
-      height,
     );
 
     return c.json({ message: "File uploaded successfully." });

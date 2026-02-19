@@ -1,4 +1,5 @@
 import { AppError } from "../errors/AppError";
+import { getExifData } from "./image-metadata.service";
 
 export const getImage = async (bucket: R2Bucket, key: string) => {
   if (!key) {
@@ -15,6 +16,7 @@ export const getImage = async (bucket: R2Bucket, key: string) => {
     if (!r2Object) {
       return null;
     }
+    
     return response;
   }
 };
@@ -33,17 +35,16 @@ export const uploadImage = async (
   bucket: R2Bucket,
   key: string,
   file: File,
-  width: string,
-  height: string,
 ) => {
   const buffer = await file.arrayBuffer();
+  const exifData = await getExifData(buffer);
+
   await bucket.put(key, buffer, {
     httpMetadata: {
       contentType: file.type,
     },
     customMetadata: {
-      width,
-      height,
+      exifData: exifData ? JSON.stringify(exifData) : "",
     },
   });
 };
