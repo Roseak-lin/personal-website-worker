@@ -63,11 +63,7 @@ export const uploadImage = async (c: Context) => {
   }
 
   try {
-    await Services.uploadImage(
-      c.env["personal-bucket"],
-      file.name,
-      file,
-    );
+    await Services.uploadImage(c.env["personal-bucket"], file.name, file);
 
     return c.json({ message: "File uploaded successfully." });
   } catch (err) {
@@ -93,9 +89,9 @@ export const deleteAllImages = async (c: Context) => {
     return c.json({ message: "All images deleted successfully." });
   } catch (err) {
     if (err instanceof AppError) {
-        return c.json({error: err.message});
+      return c.json({ error: err.message });
     } else {
-        return c.json({ error: "Failed to delete images." }, 500);
+      return c.json({ error: "Failed to delete images." }, 500);
     }
   }
 };

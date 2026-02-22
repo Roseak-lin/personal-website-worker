@@ -7,7 +7,6 @@
     {
       "binding": "personal-bucket",
       "bucket_name": "personal-website",
-      "experimental_remote": true
     }
   ]
   // "compatibility_flags": [

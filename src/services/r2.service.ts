@@ -16,7 +16,7 @@ export const getImage = async (bucket: R2Bucket, key: string) => {
     if (!r2Object) {
       return null;
     }
-    
+
     return response;
   }
 };
@@ -49,12 +49,14 @@ export const uploadImage = async (
   });
 };
 
-export const deleteAllImages = async (bucket: R2Bucket) => { 
-    const r2ListResult = await bucket.list();
+export const deleteAllImages = async (bucket: R2Bucket) => {
+  const r2ListResult = await bucket.list();
 
-    if (!r2ListResult || r2ListResult.objects.length === 0) {
-        throw new AppError("No images to delete")
-    }
+  if (!r2ListResult || r2ListResult.objects.length === 0) {
+    throw new AppError("No images to delete");
+  }
 
-    await Promise.all(r2ListResult.objects.map((obj : R2Object) => bucket.delete(obj.key)))
-}
+  await Promise.all(
+    r2ListResult.objects.map((obj: R2Object) => bucket.delete(obj.key)),
+  );
+};
