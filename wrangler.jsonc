@@ -7,8 +7,11 @@
     {
       "binding": "personal-bucket",
       "bucket_name": "personal-website",
-    }
-  ]
+    },
+  ],
+  "images": {
+    "binding": "IMAGES",
+  },
   // "compatibility_flags": [
   //   "nodejs_compat"
   // ],

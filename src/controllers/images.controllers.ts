@@ -19,7 +19,7 @@ export const getItems = async (c: Context) => {
     const images = r2ListResult.objects.map((obj: R2Object) => ({
       key: obj.key,
       exifData: obj.customMetadata?.exifData,
-      url: `/images/${encodeURIComponent(obj.key)}`,
+      imageId: `${encodeURIComponent(obj.key)}`,
     }));
 
     return c.json({
@@ -33,24 +33,38 @@ export const getItems = async (c: Context) => {
   }
 };
 
-export const getImage = async (c: Context) => {
+export const getImagePreview = async (c: Context) => {
   const id = c.req.param().id;
 
   if (!id) {
     return c.json({ error: "File ID is required." }, 400);
   } else {
     const r2Object = await Services.getImage(c.env["personal-bucket"], id);
-    const response = new Response(r2Object?.body, {
-      headers: {
-        "Content-Type": "image/jpeg",
-        "Accept-Ranges": "bytes",
-      },
-    });
+
+    const converted = await c.env.IMAGES
+      .input(r2Object?.body)
+      .transform({ width: 960 })
+      .output({ format: "image/jpeg" });
 
     if (!r2Object) {
       return c.json({ error: "Failed to retrieve image." }, 404);
     }
-    return response;
+    return converted.response();
+  }
+};
+
+export const getImageFull = async (c: Context) => {
+  const id = c.req.param().id;
+
+  if (!id) {
+    return c.json({ error: "File ID is required." }, 400);
+  } else {
+    const r2Object = await Services.getImage(c.env["personal-bucket"], id);
+
+    if (!r2Object) {
+      return c.json({ error: "Failed to retrieve image." }, 404);
+    }
+    return r2Object;
   }
 };
 
