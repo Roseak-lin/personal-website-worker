@@ -1,10 +1,19 @@
 import { AppError } from "../errors/AppError";
 import { getExifData } from "./image-metadata.service";
 
-export const getImage = async (bucket: R2Bucket, key: string) => {
+export const getImage = async (bucket: R2Bucket, key: string, url: string) => {
   if (!key) {
     return null;
   } else {
+    // attempt to hit cache first
+    const cache = caches.default;
+
+    const cachedResponse = await cache.match(url);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+
+
     const r2Object = await bucket.get(key);
     const response = new Response(r2Object?.body, {
       headers: {
@@ -16,6 +25,10 @@ export const getImage = async (bucket: R2Bucket, key: string) => {
     if (!r2Object) {
       return null;
     }
+
+    const headers = new Headers()
+    r2Object.writeHttpMetadata(headers);
+    headers.set("Cache-Control", "public, max-age=31536000, immutable");
 
     return response;
   }

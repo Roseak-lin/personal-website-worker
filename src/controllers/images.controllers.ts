@@ -35,21 +35,22 @@ export const getItems = async (c: Context) => {
 
 export const getImagePreview = async (c: Context) => {
   const id = c.req.param().id;
-
   if (!id) {
     return c.json({ error: "File ID is required." }, 400);
   } else {
-    const r2Object = await Services.getImage(c.env["personal-bucket"], id);
-
-    const converted = await c.env.IMAGES
-      .input(r2Object?.body)
-      .transform({ width: 960 })
-      .output({ format: "image/jpeg" });
+    const r2Object = await Services.getImage(c.env["personal-bucket"], id, c.req.url);
 
     if (!r2Object) {
       return c.json({ error: "Failed to retrieve image." }, 404);
     }
-    return converted.response();
+    const converted = await c.env.IMAGES
+    .input(r2Object?.body)
+    .transform({ width: 960 })
+    .output({ format: "image/jpeg" });
+    const response = converted.response();
+    
+    c.executionCtx.waitUntil(caches.default.put(c.req.url, response.clone()));
+    return response;
   }
 };
 
@@ -59,11 +60,13 @@ export const getImageFull = async (c: Context) => {
   if (!id) {
     return c.json({ error: "File ID is required." }, 400);
   } else {
-    const r2Object = await Services.getImage(c.env["personal-bucket"], id);
+    const r2Object = await Services.getImage(c.env["personal-bucket"], id, c.req.url);
 
     if (!r2Object) {
       return c.json({ error: "Failed to retrieve image." }, 404);
     }
+    
+    c.executionCtx.waitUntil(caches.default.put(c.req.url, r2Object.clone()));
     return r2Object;
   }
 };
