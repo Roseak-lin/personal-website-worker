@@ -8,11 +8,12 @@ const app = new Hono<{ Bindings: Bindings }>();
 app.use(
   "*",
   cors({
-    origin: [
-      "https://roseak-lin.github.io",
-      "http://localhost:3000",
-      "http://localhost:8080",
-    ],
+    origin: (origin) => {
+      if (origin === "https://roseak-lin.github.io") return origin;
+      if (origin.startsWith("http://localhost:")) return origin;
+      
+      return null;
+    },
     allowHeaders: ["Content-Type", "x-admin-key"],
     allowMethods: ["GET", "POST", "DELETE"],
   })

@@ -5,7 +5,12 @@ import { Bindings } from "../types/bindings";
 const images = new Hono<{ Bindings: Bindings }>();
 
 images.get("/", controller.getItems);
+
+/**
+ * @deprecated Use getImageFull instead.
+ */
 images.get("/preview/:id", controller.getImagePreview);
+
 images.get("/:id", controller.getImageFull);
 images.post("/", controller.uploadImage);
 images.delete("/", controller.deleteAllImages);

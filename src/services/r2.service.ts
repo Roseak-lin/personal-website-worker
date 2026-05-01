@@ -1,4 +1,5 @@
 import { AppError } from "../errors/AppError";
+import { ImageCaptureMetadata } from "../types/image-capture-metadata";
 import { getExifData } from "./image-metadata.service";
 
 export const getImage = async (bucket: R2Bucket, key: string, url: string) => {
@@ -13,11 +14,10 @@ export const getImage = async (bucket: R2Bucket, key: string, url: string) => {
       return cachedResponse;
     }
 
-
     const r2Object = await bucket.get(key);
     const response = new Response(r2Object?.body, {
       headers: {
-        "Content-Type": "image/jpeg",
+        "Content-Type": "image/avif",
         "Accept-Ranges": "bytes",
       },
     });
@@ -26,7 +26,7 @@ export const getImage = async (bucket: R2Bucket, key: string, url: string) => {
       return null;
     }
 
-    const headers = new Headers()
+    const headers = new Headers();
     r2Object.writeHttpMetadata(headers);
     headers.set("Cache-Control", "public, max-age=31536000, immutable");
 
@@ -48,16 +48,18 @@ export const uploadImage = async (
   bucket: R2Bucket,
   key: string,
   file: File,
+  passedExifData?: ImageCaptureMetadata,
 ) => {
   const buffer = await file.arrayBuffer();
-  const exifData = await getExifData(buffer);
 
+  const exifData = await getExifData(buffer, passedExifData);
+  console.log("extracted metadata for upload:", exifData);
   await bucket.put(key, buffer, {
     httpMetadata: {
       contentType: file.type,
     },
     customMetadata: {
-      exifData: exifData ? JSON.stringify(exifData) : "",
+      exifData: JSON.stringify(exifData),
     },
   });
 };

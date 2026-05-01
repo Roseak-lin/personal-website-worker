@@ -2,6 +2,7 @@ import { Context } from "hono";
 
 import * as Services from "../services/r2.service";
 import { AppError } from "../errors/AppError";
+import { ImageCaptureMetadata } from "../types/image-capture-metadata";
 
 export const getItems = async (c: Context) => {
   try {
@@ -46,7 +47,7 @@ export const getImagePreview = async (c: Context) => {
     const converted = await c.env.IMAGES
     .input(r2Object?.body)
     .transform({ width: 960 })
-    .output({ format: "image/jpeg" });
+    .output({ format: "image/avif" });
     const response = converted.response();
     
     c.executionCtx.waitUntil(caches.default.put(c.req.url, response.clone()));
@@ -79,8 +80,16 @@ export const uploadImage = async (c: Context) => {
     return c.json({ error: "Issue with file uploaded." }, 400);
   }
 
+  // if request includes exif data, we can use it to avoid re-scanning the image in the worker
+  const exifDataString = body.get("exifData") as string | null;
+  
   try {
-    await Services.uploadImage(c.env["personal-bucket"], file.name, file);
+    let exifData: ImageCaptureMetadata = JSON.parse(exifDataString || "{}") as ImageCaptureMetadata;
+    if (!exifDataString) {
+      await Services.uploadImage(c.env["personal-bucket"], file.name, file);
+    } else {
+      await Services.uploadImage(c.env["personal-bucket"], file.name, file, exifData);
+    }
 
     return c.json({ message: "File uploaded successfully." });
   } catch (err) {
