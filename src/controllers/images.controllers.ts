@@ -34,6 +34,9 @@ export const getItems = async (c: Context) => {
   }
 };
 
+/**
+ * @deprecated This endpoint is no longer used in the frontend and will be removed in the future. Use getImageFull instead, which now supports on-the-fly resizing via Cloudflare Images.
+ */
 export const getImagePreview = async (c: Context) => {
   const id = c.req.param().id;
   if (!id) {

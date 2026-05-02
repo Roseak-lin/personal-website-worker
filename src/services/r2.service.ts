@@ -8,19 +8,12 @@ export const getImage = async (bucket: R2Bucket, key: string, url: string) => {
   } else {
     // attempt to hit cache first
     const cache = caches.default;
-
     const cachedResponse = await cache.match(url);
     if (cachedResponse) {
       return cachedResponse;
     }
 
     const r2Object = await bucket.get(key);
-    const response = new Response(r2Object?.body, {
-      headers: {
-        "Content-Type": "image/avif",
-        "Accept-Ranges": "bytes",
-      },
-    });
 
     if (!r2Object) {
       return null;
@@ -28,9 +21,12 @@ export const getImage = async (bucket: R2Bucket, key: string, url: string) => {
 
     const headers = new Headers();
     r2Object.writeHttpMetadata(headers);
-    headers.set("Cache-Control", "public, max-age=31536000, immutable");
 
-    return response;
+    headers.set("Cache-Control", "public, max-age=31536000, immutable");
+    headers.set("Content-Type", "image/avif");
+    headers.set("Vary", "Accept");
+
+    return new Response(r2Object.body, { headers });
   }
 };
 
