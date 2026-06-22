@@ -33,7 +33,7 @@ export const getImage = async (bucket: R2Bucket, key: string, url: string) => {
 export const getImagePage = async (bucket: R2Bucket, cursor?: string) => {
   const r2ListResult = await bucket.list({
     include: ["customMetadata"],
-    limit: 6,
+    limit: 10,
     cursor,
   });
 
@@ -49,7 +49,6 @@ export const uploadImage = async (
   const buffer = await file.arrayBuffer();
 
   const exifData = await getExifData(buffer, passedExifData);
-  console.log("extracted metadata for upload:", exifData);
   await bucket.put(key, buffer, {
     httpMetadata: {
       contentType: file.type,
